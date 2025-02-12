@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ api.title }}</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <script id="api-reference" data-url="{{ url }}"></script>
+    <script>
+      var apiReference = document.getElementById("api-reference");
+      apiReference.dataset.configuration = "{{ settings }}";
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.49"></script>
+
+    <script>
+      function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+          var date = new Date();
+          date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+          expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+      }
+
+      function getCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(";");
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) === " ") c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0)
+            return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      }
+
+      function handleInputChange(event) {
+        setCookie("api-key", event.target.value, 30);
+      }
+
+      function addInputEventListener(input) {
+        if (input) {
+          input.addEventListener("input", handleInputChange);
+        }
+      }
+
+      const selector = '#security-scheme-X-API-Key, [id^="api-key-value-"]';
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            if (
+              mutation.type === "childList" &&
+              mutation.addedNodes.length > 0
+            ) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType === 1) {
+                  if (node.matches && node.matches(selector)) {
+                    addInputEventListener(node);
+                  }
+                  node
+                    .querySelectorAll(selector)
+                    .forEach(addInputEventListener);
+                }
+              });
+            }
+          });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.querySelectorAll(selector).forEach(addInputEventListener);
+      });
+    </script>
+  </body>
+</html>

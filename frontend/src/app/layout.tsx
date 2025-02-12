@@ -5,7 +5,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/model-toggle";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,8 +22,8 @@ export const metadata: Metadata = {
       media: "(prefers-color-scheme: dark)",
       url: "/coffee-_1_.svg",
       href: "/coffee-_1_.svg",
-    }
-  ]
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -38,19 +37,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-        <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
-          <ModeToggle />
-        </div>
-        {children}
-    </ThemeProvider>
-        {children}
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+            <ModeToggle />
+          </div>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-
