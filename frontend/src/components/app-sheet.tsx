@@ -14,19 +14,23 @@ import { AddDescription } from "@/components/add-description";
 
 interface TaskEditSheetProps {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  taskTitle: string;
-  taskStatus: string;
+  onClose: () => void;
+  onConfirm: (title: string) => Promise<void>;
+  onOpenChange?: (open: boolean) => void;
+  taskTitle?: string;
+  taskStatus?: string;
   taskDescription?: string;
-  onSave: (title: string, status_id: string, description?: string) => void;
-  children: React.ReactNode;
+  onSave?: (title: string, status_id: string, description?: string) => void;
+  children?: React.ReactNode;
 }
 
 export function TaskEditSheet({
   isOpen,
+  onClose,
+  onConfirm,
   onOpenChange,
-  taskTitle,
-  taskStatus,
+  taskTitle = "",
+  taskStatus = "",
   taskDescription = "",
   onSave,
   children,
@@ -36,13 +40,17 @@ export function TaskEditSheet({
   const [description, setDescription] = useState(taskDescription);
 
   const handleSave = () => {
-    onSave(title, status, description);
-    onOpenChange(false);
+    if (onSave) {
+      onSave(title, status, description);
+    } else {
+      onConfirm(title);
+    }
+    onClose();
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      {children && <SheetTrigger asChild>{children}</SheetTrigger>}
       <SheetContent>
         <SheetHeader>
           <SheetTitle className="text-lg semibold">

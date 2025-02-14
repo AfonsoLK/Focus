@@ -1,4 +1,5 @@
 from ninja import NinjaAPI
+from utils.decorators import docs
 from core.api import router as core_router
 from lib.scalar import Scalar
 import orjson
@@ -16,6 +17,6 @@ class API(NinjaAPI):
         name =  operation.view_func.__name__
         return name.replace("_", "-")
     
-api = API(description="API de tarefas", urls_namespace="api", docs= Scalar())
+api = API(description="API de tarefas", urls_namespace="api", docs= Scalar(), docs_decorator=docs())
 
 api.add_router("/", core_router, tags=["Tarefas"])

@@ -74,13 +74,13 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
                 }}
                 index={index}
                 onDelete={onDeleteTask}
-                onUpdate={(taskId, title, description, status_id) => {
+                onUpdate={(taskId, title, status_id, description) => {
                   console.log("Updating task with status:", status_id); // Debug
                   onUpdateTask(
                     taskId,
                     title,
-                    description,
-                    status_id || columnId
+                    status_id || columnId,
+                    description
                   );
                 }}
               />

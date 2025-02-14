@@ -1,9 +1,13 @@
+"use client";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/model-toggle";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +19,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "Focus",
   icons: [
     {
@@ -31,6 +35,31 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5,
+            retry: 1,
+          },
+          mutations: {
+            onError: (error: any) => {
+              let msg: string = error?.body?.message || error?.message;
+              if (!msg) return toast.error("Erro");
+              if (msg.includes("status code 403")) {
+                msg = "You are not authorized to perform this action";
+              } else if (msg.includes("status code 401")) {
+                msg = "You are not authenticated";
+              } else if (msg.includes("status code 500")) {
+                msg = "Internal server error";
+              }
+              toast.error("Erro", { description: msg });
+            },
+          },
+        },
+      })
+  );
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -42,10 +71,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div style={{ position: "absolute", top: "10px", right: "10px" }}>
-            <ModeToggle />
-          </div>
-          {children}
+          <QueryClientProvider client={queryClient}>
+            <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+              <ModeToggle />
+            </div>
+            {children}
+          </QueryClientProvider>
         </ThemeProvider>
       </body>
     </html>

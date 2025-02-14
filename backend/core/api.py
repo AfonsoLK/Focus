@@ -38,14 +38,14 @@ def task_to_dict(task):
         "updated_at": task.updated_at,
     }
 
-@router.get("/tasks/", response=List[TaskSchema])
+@router.get("/tasks", response=List[TaskSchema])
 def listar_tasks(request):
     return [
         task_to_dict(task)
         for task in Task.objects.select_related("status").all()
     ]
 
-@router.post("/tasks/")
+@router.post("/tasks")
 def criar_task(request, payload: TaskCreateSchema):
     task = Task.objects.create(
         titulo=payload.titulo,
@@ -54,7 +54,7 @@ def criar_task(request, payload: TaskCreateSchema):
     )
     return task_to_dict(task)
 
-@router.put("/tasks/{task_id}/")
+@router.put("/tasks/{task_id}")
 def atualizar_task(request, task_id: int, payload: TaskUpdateSchema):
     try:
         task = Task.objects.get(id=task_id)
@@ -67,23 +67,23 @@ def atualizar_task(request, task_id: int, payload: TaskUpdateSchema):
     except Task.DoesNotExist:
         return {"error": "Task not found"}, 404
 
-@router.delete("/tasks/{task_id}/")
+@router.delete("/tasks/{task_id}")
 def deletar_task(request, task_id: int):
     task = Task.objects.get(id=task_id)
     task.delete()
     return {"success": True}
 
-@router.get("/tags/", response=list[TagSchema])
+@router.get("/tags", response=list[TagSchema])
 def listar_tags(request):
     tags = Tag.objects.all()
     return [{"nome": tag.nome} for tag in tags]
 
-@router.post("/tags/", response=TagSchema)
+@router.post("/tags", response=TagSchema)
 def criar_tag(request, data: TagSchema):
     tag = Tag.objects.create(nome=data.nome)
     return {"nome": tag.nome}
 
-@router.delete("/tags/{tag_id}/")
+@router.delete("/tags/{tag_id}")
 def deletar_tag(request, tag_id: int):
     tag = get_object_or_404(Tag, id=tag_id)
     tag.delete()

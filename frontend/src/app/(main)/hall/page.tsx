@@ -5,9 +5,11 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { getTasks, createTask, updateTask, deleteTask } from "@/services/api";
 import { StatusSelect } from "@/components/status-select";
 import { Input } from "@/components/ui/input";
+import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
+import { TarefasService } from "../../../../services";
+import { TaskEditSheet } from "@/components/app-sheet";
 
 const BoardColumn = dynamic(() => import("@/components/board-column"), {
   ssr: false,
@@ -35,6 +37,8 @@ const columnToStatusId: Record<string, string> = {
   Concluído: "3",
 };
 
+const queryClient = new QueryClient();
+
 const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -45,89 +49,139 @@ const Index = () => {
   });
 
   const [status, setStatus] = useState("all");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [pendingColumn, setPendingColumn] = useState<string | null>(null);
+
+  const { data: response, refetch } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: TarefasService.listarTasks,
+    refetchInterval: 1000 * 60,
+  });
+
+  console.log(response);
+
+  const criarTaskMutation = useMutation({
+    mutationFn: TarefasService.criarTask,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      await refetch();
+      toast.success("Nova tarefa adicionada");
+    },
+    onError: (error: any) => {
+      if (error.response?.status === 422) {
+        toast.error("Erro de validação ao criar tarefa");
+      } else {
+        toast.error("Erro ao criar tarefa");
+      }
+    },
+  });
+
+  const atualizarTaskMutation = useMutation({
+    mutationFn: TarefasService.atualizarTask,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      await refetch();
+      toast.success("Tarefa atualizada");
+    },
+    onError: (error: any) => {
+      if (error.response?.status === 422) {
+        toast.error("Erro de validação ao atualizar tarefa");
+      } else {
+        toast.error("Erro ao atualizar tarefa");
+      }
+    },
+  });
+
+  const deletarTaskMutation = useMutation({
+    mutationFn: TarefasService.deletarTask,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      await refetch();
+      toast.success("Tarefa apagada");
+    },
+    onError: (error: any) => {
+      if (error.response?.status === 422) {
+        toast.error("Erro de validação ao apagar tarefa");
+      } else {
+        toast.error("Erro ao apagar tarefa");
+      }
+    },
+  });
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deletarTaskMutation.mutateAsync({
+        taskId: Number(taskId),
+      });
+    } catch (error) {
+      console.error("Erro ao deletar tarefa:", error);
+    }
+  };
+
+  const handleUpdateTask = async (
+    taskId: string,
+    title: string,
+    statusId?: string
+  ) => {
+    try {
+      await atualizarTaskMutation.mutateAsync({
+        taskId: Number(taskId),
+        requestBody: {
+          titulo: title,
+          status_id: statusId ? Number(statusId) : undefined,
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa:", error);
+    }
+  };
+
+  const handleAddTask = (column: string) => {
+    setPendingColumn(column);
+    setIsSheetOpen(true);
+  };
+
+  const handleConfirmAdd = async (title: string) => {
+    if (!pendingColumn) return;
+
+    try {
+      const statusId = columnToStatusId[pendingColumn];
+      await criarTaskMutation.mutateAsync({
+        requestBody: {
+          titulo: title,
+          status_id: Number(statusId),
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao adicionar tarefa:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      const tasksFromAPI = await getTasks();
-      const newBoardData: BoardData = {
+    if (response) {
+      const initialBoardData: BoardData = {
         Pendente: [],
         "Em Progresso": [],
         Concluído: [],
       };
 
-      tasksFromAPI.forEach((task: any) => {
-        const column = statusIdToColumn[task.status_id] || "Pendente";
-        newBoardData[column].push({
-          id: task.id,
-          title: task.titulo,
-          status_id: task.status_id,
-        });
+      response.forEach((task) => {
+        const column = task.status_id
+          ? statusIdToColumn[String(task.status_id)]
+          : "Pendente";
+
+        if (column) {
+          initialBoardData[column].push({
+            id: String(task.id),
+            title: task.titulo,
+            status_id: String(task.status_id ?? 1),
+          });
+        }
       });
 
-      setBoardData(newBoardData);
-    };
-
-    fetchTasks();
-  }, []);
-
-  const handleAddTask = async (column: string) => {
-    try {
-      const statusId = columnToStatusId[column];
-      const newTask = await createTask("Nova tarefa", statusId);
-      setBoardData((prev) => ({
-        ...prev,
-        [column]: [
-          ...prev[column],
-          {
-            id: newTask.id,
-            title: newTask.titulo,
-            status_id: statusId,
-          },
-        ],
-      }));
-
-      toast.success("Nova tarefa adicionada");
-    } catch (error) {
-      if ((error as any).response?.status === 422) {
-        toast.error("Erro de validação ao criar tarefa");
-      } else {
-        toast.error("Erro ao criar tarefa");
-      }
+      setBoardData(initialBoardData);
     }
-  };
-
-  const handleUpdateTask = async (taskId: string, title: string) => {
-    await updateTask(taskId, title);
-
-    setBoardData((prevBoard) => {
-      const updatedBoard = { ...prevBoard };
-      for (const column in updatedBoard) {
-        const taskIndex = updatedBoard[column].findIndex(
-          (task) => task.id === taskId
-        );
-        if (taskIndex !== -1) {
-          updatedBoard[column][taskIndex] = {
-            ...updatedBoard[column][taskIndex],
-            title,
-          };
-          break;
-        }
-      }
-      return updatedBoard;
-    });
-  };
-
-  const handleDeleteTask = async (taskId: string, column: string) => {
-    await deleteTask(taskId);
-
-    setBoardData((prevBoard) => {
-      const updatedBoard = { ...prevBoard };
-      updatedBoard[column] = updatedBoard[column].filter(
-        (task) => task.id !== taskId
-      );
-      return updatedBoard;
-    });
-  };
+  }, [response]);
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -160,7 +214,7 @@ const Index = () => {
         destinationTasks.splice(destination.index, 0, task);
         newBoardData[destinationColumn] = destinationTasks;
 
-        updateTask(draggableId, task.title, destinationStatusId)
+        handleUpdateTask(draggableId, task.title, destinationStatusId)
           .then(() => toast.success(`Card movido para ${destinationColumn}`))
           .catch(() => {
             setBoardData(prev);
@@ -175,16 +229,23 @@ const Index = () => {
     Object.entries(boardData).map(([column, tasks]) => {
       let filteredTasks = [...tasks];
 
-      if (status !== "all") {
-        const columnStatus = columnToStatusId[column];
-        if (columnStatus !== status) {
-          filteredTasks = [];
-        }
+      // First apply text search if exists
+      if (searchValue.trim()) {
+        const searchTerm = searchValue.toLowerCase().trim();
+        filteredTasks = filteredTasks.filter(
+          (task) =>
+            task.title.toLowerCase().includes(searchTerm) ||
+            task.id.toLowerCase().includes(searchTerm)
+        );
       }
 
-      filteredTasks = filteredTasks.filter((task) =>
-        task.title.toLowerCase().includes(searchValue.toLowerCase())
-      );
+      // Then filter by status if not "all"
+      if (status !== "all") {
+        return [
+          column,
+          columnToStatusId[column] === status ? filteredTasks : [],
+        ];
+      }
 
       return [column, filteredTasks];
     })
@@ -223,12 +284,23 @@ const Index = () => {
               isSidebarOpen={isSidebarOpen}
               onAddTask={() => handleAddTask(columnTitle)}
               onUpdateTask={handleUpdateTask}
-              onDeleteTask={(taskId) => handleDeleteTask(taskId, columnTitle)}
+              onDeleteTask={(taskId) => handleDeleteTask(taskId)}
             />
           ))}
         </div>
       </div>
+      <TaskEditSheet
+        isOpen={isSheetOpen}
+        onClose={() => {
+          setIsSheetOpen(false);
+          setPendingColumn(null);
+        }}
+        onConfirm={handleConfirmAdd}
+        taskTitle=""
+        taskStatus=""
+      />
     </DragDropContext>
   );
 };
+
 export default Index;

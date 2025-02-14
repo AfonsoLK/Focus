@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "openapi-ts",
+      "path": "frontend",
+      "problemMatcher": [],
+      "label": "Update API schema",
+      "detail": "openapi-ts",
+      "group": {
+        "kind": "build"
+      }
+    }
+  ]
+}
