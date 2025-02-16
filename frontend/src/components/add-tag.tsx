@@ -11,17 +11,17 @@ export default function AddTag() {
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>Input with tags</Label>
+      <Label htmlFor={id}>Adicionar tags</Label>
       <TagInput
         id={id}
         tags={exampleTags}
         setTags={(newTags) => {
           setExampleTags(newTags);
         }}
-        placeholder="Add a tag"
+        placeholder="Adicionar tag"
         styleClasses={{
           tagList: {
-            container: "gap-2",
+            container: "gap-4",
           },
           input:
             "rounded-lg transition-shadow placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/20",

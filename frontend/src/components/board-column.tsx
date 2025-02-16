@@ -7,6 +7,7 @@ interface Task {
   id: string;
   title: string;
   status_id: string; // Adicionar status_id
+  image_url?: string;
 }
 
 interface BoardColumnProps {
@@ -22,7 +23,9 @@ interface BoardColumnProps {
     description?: string
   ) => void; // Atualizar signature
   onDeleteTask: (taskId: string) => void;
+  onTaskClick: (task: Task) => void;
 }
+
 const BoardColumn: React.FC<BoardColumnProps> = ({
   columnId,
   title,
@@ -30,6 +33,7 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   isSidebarOpen,
   onDeleteTask,
   onUpdateTask,
+  onTaskClick,
 }) => {
   const { theme } = useTheme();
 
@@ -66,24 +70,29 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
             }`}
           >
             {tasks.map((task, index) => (
-              <TaskCard
+              <div
                 key={task.id}
-                task={{
-                  ...task,
-                  status_id: columnId, // Usar diretamente o columnId como status
-                }}
-                index={index}
-                onDelete={onDeleteTask}
-                onUpdate={(taskId, title, status_id, description) => {
-                  console.log("Updating task with status:", status_id); // Debug
-                  onUpdateTask(
-                    taskId,
-                    title,
-                    status_id || columnId,
-                    description
-                  );
-                }}
-              />
+                onClick={() => onTaskClick(task)}
+                className="cursor-pointer" // Add this class to indicate clickability
+              >
+                <TaskCard
+                  task={{
+                    ...task,
+                    status_id: columnId, // Usar diretamente o columnId como status
+                  }}
+                  index={index}
+                  onDelete={onDeleteTask}
+                  onUpdate={(taskId, title, status_id, description) => {
+                    console.log("Updating task with status:", status_id); // Debug
+                    onUpdateTask(
+                      taskId,
+                      title,
+                      status_id || columnId,
+                      description
+                    );
+                  }}
+                />
+              </div>
             ))}
             {provided.placeholder}
           </div>

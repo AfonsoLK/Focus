@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { TarefasService } from "../../../../services";
 import { TaskEditSheet } from "@/components/app-sheet";
+import { ModeToggle } from "@/components/model-toggle";
 
 const BoardColumn = dynamic(() => import("@/components/board-column"), {
   ssr: false,
@@ -19,6 +20,13 @@ interface Task {
   id: string;
   title: string;
   status_id: string;
+  descricao?: string; // Add description field
+  image_url?: string; // Add this field
+}
+
+interface Tag {
+  id: string;
+  name: string;
 }
 
 interface BoardData {
@@ -51,6 +59,7 @@ const Index = () => {
   const [status, setStatus] = useState("all");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [pendingColumn, setPendingColumn] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const { data: response, refetch } = useQuery({
     queryKey: ["tasks"],
@@ -121,7 +130,9 @@ const Index = () => {
   const handleUpdateTask = async (
     taskId: string,
     title: string,
-    statusId?: string
+    statusId?: string,
+    description?: string,
+    image_url?: string
   ) => {
     try {
       await atualizarTaskMutation.mutateAsync({
@@ -129,6 +140,8 @@ const Index = () => {
         requestBody: {
           titulo: title,
           status_id: statusId ? Number(statusId) : undefined,
+          descricao: description,
+          image_url: image_url,
         },
       });
     } catch (error) {
@@ -141,7 +154,7 @@ const Index = () => {
     setIsSheetOpen(true);
   };
 
-  const handleConfirmAdd = async (title: string) => {
+  const handleConfirmAdd = async (title: string, description?: string) => {
     if (!pendingColumn) return;
 
     try {
@@ -150,11 +163,17 @@ const Index = () => {
         requestBody: {
           titulo: title,
           status_id: Number(statusId),
+          descricao: description,
         },
       });
     } catch (error) {
       console.error("Erro ao adicionar tarefa:", error);
     }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsSheetOpen(true);
   };
 
   useEffect(() => {
@@ -175,6 +194,8 @@ const Index = () => {
             id: String(task.id),
             title: task.titulo,
             status_id: String(task.status_id ?? 1),
+            descricao: task.descricao ?? undefined, // Convert null to undefined
+            image_url: task.image_url ?? undefined, // Convert null to undefined
           });
         }
       });
@@ -214,7 +235,12 @@ const Index = () => {
         destinationTasks.splice(destination.index, 0, task);
         newBoardData[destinationColumn] = destinationTasks;
 
-        handleUpdateTask(draggableId, task.title, destinationStatusId)
+        handleUpdateTask(
+          draggableId,
+          task.title,
+          destinationStatusId,
+          task.descricao
+        )
           .then(() => toast.success(`Card movido para ${destinationColumn}`))
           .catch(() => {
             setBoardData(prev);
@@ -229,7 +255,6 @@ const Index = () => {
     Object.entries(boardData).map(([column, tasks]) => {
       let filteredTasks = [...tasks];
 
-      // First apply text search if exists
       if (searchValue.trim()) {
         const searchTerm = searchValue.toLowerCase().trim();
         filteredTasks = filteredTasks.filter(
@@ -239,7 +264,6 @@ const Index = () => {
         );
       }
 
-      // Then filter by status if not "all"
       if (status !== "all") {
         return [
           column,
@@ -254,25 +278,28 @@ const Index = () => {
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="min-h-screen bg-board p-4">
-        <div className="flex items-center gap-4 mb-6 ml-4">
-          <h1 className="text-2xl font-bold">Tarefas</h1>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleAddTask("Pendente")}
-              variant="default"
-              className="justify-start"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar tarefa
-            </Button>
-            <Input
-              className="w-64"
-              placeholder="Buscar"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-            />
-            <StatusSelect status={status} onChange={setStatus} />
+        <div className="flex items-center justify-between gap-4 mb-6 ml-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold">Tarefas</h1>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleAddTask("Pendente")}
+                variant="default"
+                className="justify-start"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar tarefa
+              </Button>
+              <Input
+                className="w-64"
+                placeholder="Buscar"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+              />
+              <StatusSelect status={status} onChange={setStatus} />
+            </div>
           </div>
+          <ModeToggle />
         </div>
         <div className="flex gap-4 pb-4 overflow-x-auto">
           {Object.entries(filteredBoardData).map(([columnTitle, tasks]) => (
@@ -285,6 +312,7 @@ const Index = () => {
               onAddTask={() => handleAddTask(columnTitle)}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={(taskId) => handleDeleteTask(taskId)}
+              onTaskClick={handleTaskClick}
             />
           ))}
         </div>
@@ -294,10 +322,24 @@ const Index = () => {
         onClose={() => {
           setIsSheetOpen(false);
           setPendingColumn(null);
+          setSelectedTask(null);
         }}
-        onConfirm={handleConfirmAdd}
-        taskTitle=""
-        taskStatus=""
+        onConfirm={
+          selectedTask
+            ? (title, description, image_url) =>
+                handleUpdateTask(
+                  selectedTask.id,
+                  title,
+                  undefined,
+                  description,
+                  image_url
+                )
+            : handleConfirmAdd
+        }
+        taskTitle={selectedTask?.title ?? ""}
+        taskStatus={selectedTask?.status_id ?? ""}
+        taskDescription={selectedTask?.descricao ?? ""}
+        taskImageUrl={selectedTask?.image_url}
       />
     </DragDropContext>
   );

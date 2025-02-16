@@ -1,6 +1,7 @@
 "use client";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { EdgeStoreProvider } from "../lib/edgestore";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -72,10 +73,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryClientProvider client={queryClient}>
-            <div style={{ position: "absolute", top: "10px", right: "10px" }}>
-              <ModeToggle />
-            </div>
-            {children}
+            <EdgeStoreProvider>
+              <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+                <ModeToggle />
+              </div>
+              {children}
+            </EdgeStoreProvider>
           </QueryClientProvider>
         </ThemeProvider>
       </body>

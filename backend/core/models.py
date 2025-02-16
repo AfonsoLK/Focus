@@ -29,15 +29,28 @@ class Tag(models.Model):
 def get_default_status():
     return Status.objects.get(nome='Pendente').id
 
+class TaskTag(models.Model):
+    task = models.ForeignKey('Task', on_delete=models.CASCADE)
+    tag = models.ForeignKey('Tag', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_task_tag'
+        unique_together = ('task', 'tag')
+
+    def __str__(self):
+        return f"{self.task.titulo} - {self.tag.nome}"
+
 class Task(models.Model):
     titulo = models.CharField(max_length=255)
-    description= models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     status = models.ForeignKey(
         Status,
         on_delete=models.PROTECT,
         default=get_default_status,
         related_name='tasks'
     )
+   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

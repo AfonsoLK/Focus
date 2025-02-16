@@ -2,7 +2,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Bold, Italic, Underline } from "lucide-react";
 import { useState } from "react";
-import { ImageUpload } from "./image-upload";
+import AddTag from "./add-tag";
 
 interface AddDescriptionProps {
   onDescriptionChange: (description: string) => void;
@@ -108,8 +108,8 @@ export function AddDescription({
         >
           {charCount}/{maxChars}
         </div>
-        {/* <ImageUpload /> */}
       </div>
+      <AddTag />
     </div>
   );
 }

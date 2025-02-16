@@ -17,6 +17,7 @@ class TaskSchema(BaseModel):
     titulo: str
     status_id: int | None
     descricao: str | None = None  # Add description field
+    image_url: str | None = None
 
 class TaskCreateSchema(BaseModel):
     titulo: str
